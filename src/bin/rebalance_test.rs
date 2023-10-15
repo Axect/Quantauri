@@ -1,6 +1,8 @@
-use fmp::strategy::{BuyAndHold, PeriodicRebalance, ThresholdRebalance};
-use fmp::trade::Backtester;
 use peroxide::fuga::*;
+use quantauri::{
+    strategy::{BuyAndHold, PeriodicRebalance, ThresholdRebalance},
+    trade::Backtester,
+};
 use std::collections::HashMap;
 use std::env::args;
 
@@ -38,10 +40,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let interest_rate = 0.04f64;
     let weights = vec![
         vec![0.4f64, 0.2, 0.4],
-        vec![0.5f64, 0.25, 0.25],        // 6
-        vec![0.25f64, 0.5, 0.25],        // 7
-        vec![0.25f64, 0.25, 0.5],        // 8
-        vec![0.25f64, 0.25f64, 0.25f64], // 9
+        vec![0.5f64, 0.25, 0.25],  // 6
+        vec![0.25f64, 0.5, 0.25],  // 7
+        vec![0.25f64, 0.25, 0.5],  // 8
+        vec![0.25f64, 0.25, 0.25], // 9
+        vec![0.05f64, 0.05, 0.05], // 10
     ];
     let weights = if TESTNUM < 6 {
         weights[0].clone()
