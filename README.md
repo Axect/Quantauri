@@ -1,1 +1,3 @@
-# Financial Modeling Prep in Rust
+# Quantauri
+
+Quantauri is a library for quantitative finance and algorithmic trading.
