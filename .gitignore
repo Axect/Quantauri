@@ -1,0 +1,10 @@
+target/
+api_key.txt
+api.parquet
+data/
+__pycache__/
+src/example_package/
+tests/
+notebook/
+.idea/
+figs/

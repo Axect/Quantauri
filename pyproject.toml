@@ -1,0 +1,21 @@
+[project]
+name = "Quantauri"
+version = "0.1.0"
+description = ""
+authors = [{ name = "axect", email = "ax2ct@outlook.com" }]
+dependencies = [
+  "numpy>=1.26.0",
+  "notebook>=7.0.5",
+  "matplotlib>=3.8.0",
+  "pyarrow>=13.0.0",
+  "scienceplots>=2.1.0",
+  "argparse>=1.4.0",
+  "pandas>=2.1.1",
+  "pyfolio-reloaded>=0.9.5",
+  "setuptools>=68.2.2",
+  "yfinance>=0.2.31",
+  "torch>=2.1.0",
+]
+requires-python = ">=3.11,<3.13"
+readme = "README.md"
+license = { text = "MIT" }
