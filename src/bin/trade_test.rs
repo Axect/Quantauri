@@ -1,6 +1,6 @@
-use fmp::strategy::{BuyAndHold, PeriodicRebalance};
-use fmp::trade::Backtester;
 use peroxide::fuga::*;
+use quantauri::strategy::{BuyAndHold, PeriodicRebalance};
+use quantauri::trade::Backtester;
 use std::collections::HashMap;
 
 // Rebalancing in 60 days

@@ -1,1 +1,1 @@
-cp figs/*.png $HOME/Dropbox/Deploy/fmp
+cp figs/*.png $HOME/Dropbox/Deploy/Quantauri/

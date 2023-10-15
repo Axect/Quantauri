@@ -1,8 +1,5 @@
-use fmp::api::{download_stocks, Quote};
 use peroxide::fuga::*;
-use time::{macros::datetime, OffsetDateTime};
-use tokio;
-use yahoo_finance_api as yahoo;
+use quantauri::api::download_stocks;
 
 #[tokio::main]
 async fn main() {

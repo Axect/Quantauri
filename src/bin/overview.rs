@@ -1,6 +1,6 @@
-use fmp::api::download_stocks;
-use fmp::ta::{adx_dmi, cci, divergence, ema, macd, rsi, sma, stochastic, wma};
 use peroxide::fuga::*;
+use quantauri::api::download_stocks;
+use quantauri::ta::{adx_dmi, cci, divergence, ema, macd, rsi, sma, stochastic, wma};
 use std::env::args;
 
 #[tokio::main]

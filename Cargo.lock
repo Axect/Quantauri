@@ -372,20 +372,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fmp"
-version = "0.1.0"
-dependencies = [
- "peroxide",
- "reqwest",
- "serde",
- "serde_json",
- "time",
- "tokio",
- "tokio-test",
- "yahoo_finance_api",
-]
-
-[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1144,6 +1130,20 @@ name = "puruspe"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe7765e19fb2ba6fd4373b8d90399f5321683ea7c11b598c6bbaa3a72e9c83b8"
+
+[[package]]
+name = "quantauri"
+version = "0.1.0"
+dependencies = [
+ "peroxide",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-test",
+ "yahoo_finance_api",
+]
 
 [[package]]
 name = "quote"
