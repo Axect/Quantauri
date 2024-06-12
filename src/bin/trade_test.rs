@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use peroxide::fuga::*;
 use quantauri::strategy::{BuyAndHold, PeriodicRebalance};
 use quantauri::trade::Backtester;
@@ -25,7 +26,7 @@ const TESTNUM: usize = 7;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let symbols = vec!["005930.KS".to_string()];
     // let symbols = vec!["000660.KS".to_string()];
-    let symbols = vec!["005930.KS".to_string(), "086520.KQ".to_string()];
+    let symbols = ["SCHD".to_string(), "QQQ".to_string()];
     //let symbols = vec![
     //    "005930.KS",    // Samsung Electronics// //
     //    "051910.KS",    // LG Chem
@@ -42,18 +43,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .map(|x| x.to_string())
         .collect::<Vec<String>>();
-    let from = "2019-03-08 00:00:00 +09";
-    let to = "2023-10-12 00:00:00 +09";
+    let from = NaiveDate::from_ymd_opt(2019, 3, 8).unwrap();
+    let to = NaiveDate::from_ymd_opt(2024, 6, 1).unwrap();
     let init_balance = 1000_0000f64;
     let interest_rate = 0.04f64;
     // let sec_fee = 0.00015f64;
     let sec_fee = {
         // 0.00015 * 0.8 + 0.001 * 0.2
-        0.00015
+        0.001
     };
 
     // let weight_vec = vec![1f64];
-    let weight_vec = vec![0.4f64, 0.4];
+    let weight_vec = vec![0.45f64, 0.45];
     // let weight_vec = vec![0.4f64, 0.4];
     // let weight_vec = vec![0.1f64; symbols.len()];
     //let weight_vec = vec![

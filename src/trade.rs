@@ -1,5 +1,6 @@
 use crate::api::{download_stocks, Chart};
 use crate::strategy::Strategy;
+use chrono::NaiveDate;
 use peroxide::fuga::*;
 use std::collections::{HashMap, HashSet};
 
@@ -94,8 +95,8 @@ pub struct MarketData {
 impl MarketData {
     pub async fn new(
         symbols: &[String],
-        from: &str,
-        to: &str,
+        from: NaiveDate,
+        to: NaiveDate,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let vec_hist = download_stocks(symbols, from, to).await?;
         let mut chart_vec_map = HashMap::new();
@@ -223,8 +224,8 @@ impl Backtester {
         symbols: &[String],
         init_balance: f64,
         strategy: Box<dyn Strategy>,
-        from: &str,
-        to: &str,
+        from: NaiveDate,
+        to: NaiveDate,
         interest_rate: f64,
         sec_fee: f64,
     ) -> Result<Self, Box<dyn std::error::Error>> {

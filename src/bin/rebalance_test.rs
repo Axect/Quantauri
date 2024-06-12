@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use peroxide::fuga::*;
 use quantauri::{
     strategy::{BuyAndHold, PeriodicRebalance, ThresholdRebalance},
@@ -24,21 +25,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or("0".to_string())
         .parse::<usize>()
         .unwrap();
-    let symbols = vec![
-        "005930.KS".to_string(),
+    let symbols = [
+        "SCHD".to_string(),
         // "GLD".to_string(),
-        "SPY".to_string(),
-        "OXY".to_string(),
+        "QQQ".to_string(),
+        "IOO".to_string(),
     ];
     let symbols = symbols
         .iter()
         .map(|x| x.to_string())
         .collect::<Vec<String>>();
-    let from = "2016-01-01 00:00:00 +09";
-    let to = "2023-10-14 00:00:00 +09";
+    let from = NaiveDate::from_ymd_opt(2016, 1, 1).unwrap();
+    let to = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
     let init_balance = 1000_0000f64;
-    let interest_rate = 0.04f64;
-    let weights = vec![
+    let interest_rate = 0.03f64;
+    let weights = [
         vec![0.4f64, 0.2, 0.4],
         vec![0.5f64, 0.25, 0.25],  // 6
         vec![0.25f64, 0.5, 0.25],  // 7
@@ -51,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         weights[TESTNUM - 5].clone()
     };
-    let sec_fees = vec![0.00015f64, 0.001, 0.001];
+    let sec_fees = vec![0.001, 0.001, 0.001];
     let sec_fee = weights.dot(&sec_fees);
     let weights = HashMap::from_iter(symbols.clone().into_iter().zip(weights));
 

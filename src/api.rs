@@ -1,24 +1,54 @@
 use peroxide::fuga::*;
-use time::{format_description, OffsetDateTime};
-use yahoo_finance_api::{self as yahoo, YResponse};
+use stock_data::*;
+use chrono::NaiveDate;
 
 pub async fn download_stocks(
     symbols: &[String],
-    from: &str,
-    to: &str,
+    from: NaiveDate,
+    to: NaiveDate,
 ) -> Result<Vec<HistoricalChart>, Box<dyn std::error::Error>> {
     let mut hist_vec = vec![];
     for symbol in symbols {
-        let provider = yahoo::YahooConnector::new();
-        let fmt = format_description::parse(
-            "[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour sign:mandatory]",
-        )?;
-        let start = OffsetDateTime::parse(from, &fmt)?;
-        let end = OffsetDateTime::parse(to, &fmt)?;
+        let url = build_yahoo_finance_url_from_dates(symbol, from, to, "1d", true);
+        println!("Downloading {}\tfrom {} to {}", symbol, from, to);
 
-        println!("Downloading {}\tfrom {} to {}", symbol, start, end);
-        let hist = provider.get_quote_history(symbol, start, end)?;
-        hist_vec.push(hist.to_historical_chart(symbol));
+        let mut bytes = vec![];
+        while bytes.is_empty() {
+            bytes = match download_stock_data(&url).await {
+                Ok(b) => b,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    vec![]
+                }
+            };
+        }
+
+        let data_dir = "data";
+        if !std::path::Path::new(data_dir).exists() {
+            std::fs::create_dir(data_dir)?;
+        }
+        let path = format!("{}/{}", data_dir, symbol);
+        let temp_file = path + ".csv";
+        write_stock_data(&bytes, &temp_file).await?;
+
+        // Wait for file to be written
+        // Check file size > 0 bytes
+        while std::fs::metadata(&temp_file)?.len() == 0 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+
+        let mut df = DataFrame::read_csv(&temp_file, ',')?;
+
+        // Find "null" in the data
+        df["Open"].mut_map(|x: &mut String| if x == "null" { *x = "0.0".to_string(); });
+        df["High"].mut_map(|x: &mut String| if x == "null" { *x = "0.0".to_string(); });
+        df["Low"].mut_map(|x: &mut String| if x == "null" { *x = "0.0".to_string(); });
+        df["Close"].mut_map(|x: &mut String| if x == "null" { *x = "0.0".to_string(); });
+        df["Adj Close"].mut_map(|x: &mut String| if x == "null" { *x = "0.0".to_string(); });
+        df["Volume"].mut_map(|x: &mut String| if x == "null" { *x = "0".to_string(); });
+        df.as_types(vec![Str, F64, F64, F64, F64, F64, U64]);
+
+        hist_vec.push(df.to_historical_chart(symbol));
     }
     Ok(hist_vec)
 }
@@ -113,7 +143,7 @@ impl HistoricalChart {
 }
 
 pub trait Quote {
-    fn get_timestemp(&self) -> Vec<String>;
+    fn get_date(&self) -> Vec<String>;
     fn get_open(&self) -> Vec<f64>;
     fn get_high(&self) -> Vec<f64>;
     fn get_low(&self) -> Vec<f64>;
@@ -125,80 +155,68 @@ pub trait Quote {
     fn to_historical_chart(&self, symbol: &str) -> HistoricalChart;
 }
 
-impl Quote for YResponse {
-    fn get_timestemp(&self) -> Vec<String> {
-        let quotes = self.quotes().unwrap();
-        // Change u64 -> String (YYYY-MM-DD) with datetime
-        quotes
-            .into_iter()
-            .map(|x| {
-                OffsetDateTime::from_unix_timestamp(x.timestamp as i64)
-                    .unwrap()
-                    .date()
-                    .to_string()
-            })
-            .collect()
+impl Quote for DataFrame {
+    fn get_date(&self) -> Vec<String> {
+        self["Date"].to_vec()
     }
 
     fn get_open(&self) -> Vec<f64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.open).collect()
+        self["Open"].to_vec()
     }
 
     fn get_high(&self) -> Vec<f64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.high).collect()
+        self["High"].to_vec()
     }
 
     fn get_low(&self) -> Vec<f64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.low).collect()
+        self["Low"].to_vec()
     }
 
     fn get_close(&self) -> Vec<f64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.close).collect()
+        self["Close"].to_vec()
     }
 
     fn get_volume(&self) -> Vec<u64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.volume).collect()
+        self["Volume"].to_vec()
     }
 
     fn get_adj_close(&self) -> Vec<f64> {
-        let quotes = self.quotes().unwrap();
-        quotes.into_iter().map(|x| x.adjclose).collect()
+        self["Adj Close"].to_vec()
     }
 
     fn to_dataframe(&self) -> DataFrame {
-        let mut df = DataFrame::new(vec![]);
-        df.push("timestamp", Series::new(self.get_timestemp()));
-        df.push("open", Series::new(self.get_open()));
-        df.push("high", Series::new(self.get_high()));
-        df.push("low", Series::new(self.get_low()));
-        df.push("close", Series::new(self.get_close()));
-        df.push("volume", Series::new(self.get_volume()));
-        df.push("adjclose", Series::new(self.get_adj_close()));
-        df
+        self.clone()
     }
 
     fn to_chart_vec(&self) -> Vec<Chart> {
-        let quotes = self.quotes().unwrap();
-        quotes
-            .into_iter()
-            .map(|x| Chart {
-                open: x.open,
-                high: x.high,
-                low: x.low,
-                close: x.close,
-                volume: x.volume,
-                adj_close: x.adjclose,
+        let date = self.get_date();
+        let open = self.get_open();
+        let high = self.get_high();
+        let low = self.get_low();
+        let close = self.get_close();
+        let volume = self.get_volume();
+        let adj_close = self.get_adj_close();
+
+        date.iter()
+            .zip(open.iter())
+            .zip(high.iter())
+            .zip(low.iter())
+            .zip(close.iter())
+            .zip(volume.iter())
+            .zip(adj_close.iter())
+            .map(|((((((_, o), h), l), c), v), a)| Chart {
+                open: *o,
+                high: *h,
+                low: *l,
+                close: *c,
+                volume: *v,
+                adj_close: *a,
             })
             .collect()
     }
 
     fn to_historical_chart(&self, symbol: &str) -> HistoricalChart {
-        let date = self.get_timestemp();
+        let date = self.get_date();
         let chart = self.to_chart_vec();
         HistoricalChart {
             symbol: symbol.to_string(),
@@ -207,6 +225,89 @@ impl Quote for YResponse {
         }
     }
 }
+
+//impl Quote for YResponse {
+//    fn get_timestemp(&self) -> Vec<String> {
+//        let quotes = self.quotes().unwrap();
+//        // Change u64 -> String (YYYY-MM-DD) with datetime
+//        quotes
+//            .into_iter()
+//            .map(|x| {
+//                OffsetDateTime::from_unix_timestamp(x.timestamp as i64)
+//                    .unwrap()
+//                    .date()
+//                    .to_string()
+//            })
+//            .collect()
+//    }
+//
+//    fn get_open(&self) -> Vec<f64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.open).collect()
+//    }
+//
+//    fn get_high(&self) -> Vec<f64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.high).collect()
+//    }
+//
+//    fn get_low(&self) -> Vec<f64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.low).collect()
+//    }
+//
+//    fn get_close(&self) -> Vec<f64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.close).collect()
+//    }
+//
+//    fn get_volume(&self) -> Vec<u64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.volume).collect()
+//    }
+//
+//    fn get_adj_close(&self) -> Vec<f64> {
+//        let quotes = self.quotes().unwrap();
+//        quotes.into_iter().map(|x| x.adjclose).collect()
+//    }
+//
+//    fn to_dataframe(&self) -> DataFrame {
+//        let mut df = DataFrame::new(vec![]);
+//        df.push("timestamp", Series::new(self.get_timestemp()));
+//        df.push("open", Series::new(self.get_open()));
+//        df.push("high", Series::new(self.get_high()));
+//        df.push("low", Series::new(self.get_low()));
+//        df.push("close", Series::new(self.get_close()));
+//        df.push("volume", Series::new(self.get_volume()));
+//        df.push("adjclose", Series::new(self.get_adj_close()));
+//        df
+//    }
+//
+//    fn to_chart_vec(&self) -> Vec<Chart> {
+//        let quotes = self.quotes().unwrap();
+//        quotes
+//            .into_iter()
+//            .map(|x| Chart {
+//                open: x.open,
+//                high: x.high,
+//                low: x.low,
+//                close: x.close,
+//                volume: x.volume,
+//                adj_close: x.adjclose,
+//            })
+//            .collect()
+//    }
+//
+//    fn to_historical_chart(&self, symbol: &str) -> HistoricalChart {
+//        let date = self.get_timestemp();
+//        let chart = self.to_chart_vec();
+//        HistoricalChart {
+//            symbol: symbol.to_string(),
+//            date,
+//            chart,
+//        }
+//    }
+//}
 
 //use serde::Deserialize;
 //use reqwest::header::*;

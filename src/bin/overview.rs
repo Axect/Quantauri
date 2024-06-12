@@ -1,4 +1,5 @@
 use peroxide::fuga::*;
+use chrono::NaiveDate;
 use quantauri::api::download_stocks;
 use quantauri::ta::{adx_dmi, cci, divergence, ema, macd, rsi, sma, stochastic, wma};
 use std::env::args;
@@ -6,8 +7,8 @@ use std::env::args;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let symbol = args().nth(1).unwrap_or("005930.KS".to_string());
-    let from = "2022-01-09 00:00:00 +09"; // For cushion
-    let to = "2023-10-12 00:00:00 +09";
+    let from = NaiveDate::from_ymd_opt(2022, 1, 9).unwrap();
+    let to = NaiveDate::from_ymd_opt(2024,6,1).unwrap();
     let symbol_wrap = vec![symbol.clone()];
 
     let stock = download_stocks(&symbol_wrap, from, to).await?;

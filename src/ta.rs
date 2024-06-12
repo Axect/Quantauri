@@ -268,7 +268,7 @@ pub fn divergence(v: &[f64]) -> (Vec<f64>, Vec<f64>) {
     }
 
     // Create cubic spline of local maxima
-    let cs = cubic_hermite_spline(&idx_f64, &maxima, Akima);
+    let cs = cubic_hermite_spline(&idx_f64, &maxima, Akima).unwrap();
     let idx = seq(0, v.len() as u32 - 1, 1);
     let div = cs.eval_vec(&idx.fmap(|x| x as f64));
     let slope = cs.derivative().eval_vec(&idx.fmap(|x| x as f64));
